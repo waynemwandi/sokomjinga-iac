@@ -1,0 +1,19 @@
+# Redirect www -> apex
+www.waynemwandi.com {
+  redir https://waynemwandi.com{uri}
+}
+
+# Main site with auto-HTTPS
+waynemwandi.com {
+  encode zstd gzip
+
+  # API under /api
+  handle_path /api/* {
+    reverse_proxy api:8000
+  }
+
+  # Frontend everywhere else
+  handle {
+    reverse_proxy frontend:3000
+  }
+}

@@ -38,3 +38,9 @@ http://localhost
 # health check
 curl http://localhost/api/health
 ```
+
+```sh
+docker compose --profile nginx up -d --build # DEV
+
+docker compose --profile caddy up -d --build # PROD
+```

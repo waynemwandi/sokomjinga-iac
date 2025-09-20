@@ -47,20 +47,37 @@ services:
     restart: unless-stopped
     networks: [private]
 
-  proxy:
+  # Nginx proxy (default for local)
+  proxy-nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
-    depends_on:
-      - api
-      - frontend
+    depends_on: [api, frontend]
     ports:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     networks: [private]
+    profiles: ["nginx"] # <-- starts when you select this profile
+
+  # Caddy proxy (for EC2/prod with HTTPS)
+  proxy-caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [api, frontend]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data # certs live here
+      - caddy_config:/config
+    networks: [private]
+    profiles: ["caddy"] # <-- starts when you select this profile
 
 volumes:
   db_data:
+  caddy_data:
+  caddy_config:
 
 networks:
   private:
