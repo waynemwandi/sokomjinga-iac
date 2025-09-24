@@ -40,39 +40,86 @@ services:
       db:
         condition: service_healthy
     networks: [private]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:8000/health >/dev/null || exit 1",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 40s # give Alembic time
 
   frontend:
     build:
       context: ../sokomjinga-frontend
+    environment:
+      PUBLIC_API_BASE: /api # browser via proxy
+      PRIVATE_API_BASE: http://api:8000 # SSR container-to-container
+    depends_on:
+      api:
+        condition: service_healthy
     restart: unless-stopped
     networks: [private]
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -fsS http://localhost:3000/ >/dev/null || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 20s
 
-  # Nginx proxy (default for local)
   proxy-nginx:
     image: nginx:1.27-alpine
     restart: unless-stopped
-    depends_on: [api, frontend]
+    depends_on:
+      api:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
     ports:
       - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     networks: [private]
-    profiles: ["nginx"] # <-- starts when you select this profile
+    profiles: ["nginx"]
+    healthcheck:
+      test: [
+          "CMD-SHELL",
+          "wget -q --spider --tries=1 --timeout=2 http://localhost/ \
+          && wget -q --spider --tries=1 --timeout=2 http://localhost/api/health || exit 1",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 15
 
-  # Caddy proxy (for EC2/prod with HTTPS)
   proxy-caddy:
     image: caddy:2
     restart: unless-stopped
-    depends_on: [api, frontend]
+    depends_on:
+      api:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data # certs live here
+      - caddy_data:/data
       - caddy_config:/config
     networks: [private]
-    profiles: ["caddy"] # <-- starts when you select this profile
+    profiles: ["caddy"]
+    healthcheck:
+      test: [
+          "CMD-SHELL",
+          "wget -q --spider --tries=1 --timeout=2 http://localhost/ \
+          && wget -q --spider --tries=1 --timeout=2 http://localhost/api/health || exit 1",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 15
 
 volumes:
   db_data:
