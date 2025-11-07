@@ -43,4 +43,14 @@ curl http://localhost/api/health
 docker compose --profile nginx up -d --build # DEV
 
 docker compose --profile caddy up -d --build # PROD
+
+docker rm -f sokomjinga-iac-proxy-nginx-1 # remove container manually
+
+docker network prune -f # take down remaining network
+
+# Seeds
+docker exec -it sokomjinga-iac-api-1 sh -lc 'cd /app && PYTHONPATH=/app python -m scripts.seed_markets'
+docker exec -it sokomjinga-iac-api-1 sh -lc 'cd /app && PYTHONPATH=/app python -m scripts.seed_outcomes'
+
+
 ```

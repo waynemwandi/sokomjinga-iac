@@ -57,6 +57,9 @@ services:
     environment:
       PUBLIC_API_BASE: /api # browser via proxy
       PRIVATE_API_BASE: http://api:8000 # SSR container-to-container
+      PROTOCOL_HEADER: x-forwarded-proto
+      HOST_HEADER: x-forwarded-host
+      ADDRESS_HEADER: x-forwarded-for
     depends_on:
       api:
         condition: service_healthy
@@ -81,7 +84,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/app.conf:/etc/nginx/conf.d/default.conf:ro
     networks: [private]
     profiles: ["nginx"]
     healthcheck:
